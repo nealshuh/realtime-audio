@@ -10,6 +10,7 @@ export default function VoiceChat() {
   const [participants, setParticipants] = useState([]);
   const [error, setError] = useState('');
   const [isConfigured, setIsConfigured] = useState(false);
+  const [audioStatus, setAudioStatus] = useState('checking');
 
   useEffect(() => {
     return () => {
@@ -82,9 +83,11 @@ export default function VoiceChat() {
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log('Microphone permission granted');
+        setAudioStatus('granted');
       } catch (permError) {
         console.warn('Microphone permission denied:', permError);
         setError('Microphone permission is required for voice chat');
+        setAudioStatus('denied');
         return;
       }
 
@@ -92,22 +95,22 @@ export default function VoiceChat() {
 
       daily.on('participant-joined', (event) => {
         console.log('Participant joined:', event.participant);
-        updateParticipants();
+        setTimeout(updateParticipants, 100);
       });
       daily.on('participant-updated', (event) => {
         console.log('Participant updated:', event.participant);
-        updateParticipants();
+        setTimeout(updateParticipants, 100);
       });
       daily.on('participant-left', (event) => {
         console.log('Participant left:', event.participant);
-        updateParticipants();
+        setTimeout(updateParticipants, 100);
       });
 
       daily.on('joined-meeting', () => {
         console.log('Joined meeting successfully');
         setIsInCall(true);
         setIsConfigured(true);
-        updateParticipants();
+        setTimeout(updateParticipants, 200);
       });
 
       daily.on('left-meeting', () => {
@@ -126,6 +129,19 @@ export default function VoiceChat() {
       });
 
       await daily.join({ url: roomUrl });
+      
+      // Ensure audio is enabled after joining
+      setTimeout(async () => {
+        try {
+          await daily.setLocalAudio(true);
+          console.log('Audio enabled after join');
+          setIsMuted(false);
+          setAudioStatus('active');
+        } catch (audioError) {
+          console.error('Failed to enable audio:', audioError);
+          setAudioStatus('error');
+        }
+      }, 1000);
     } catch (err) {
       setError('Failed to setup room: ' + err.message);
     }
@@ -227,7 +243,7 @@ export default function VoiceChat() {
             <div style={styles.callStatus}>
               <div style={styles.statusIndicator}>
                 <span style={styles.pulse}></span>
-                <span>Connected - Streaming Audio</span>
+                <span>Connected - Audio: {audioStatus}</span>
               </div>
 
               <div style={styles.controls}>
