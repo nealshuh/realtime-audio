@@ -78,13 +78,33 @@ export default function VoiceChat() {
         videoSource: false
       });
 
+      // Request microphone permission explicitly
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('Microphone permission granted');
+      } catch (permError) {
+        console.warn('Microphone permission denied:', permError);
+        setError('Microphone permission is required for voice chat');
+        return;
+      }
+
       setCallFrame(daily);
 
-      daily.on('participant-joined', updateParticipants);
-      daily.on('participant-updated', updateParticipants);
-      daily.on('participant-left', updateParticipants);
+      daily.on('participant-joined', (event) => {
+        console.log('Participant joined:', event.participant);
+        updateParticipants();
+      });
+      daily.on('participant-updated', (event) => {
+        console.log('Participant updated:', event.participant);
+        updateParticipants();
+      });
+      daily.on('participant-left', (event) => {
+        console.log('Participant left:', event.participant);
+        updateParticipants();
+      });
 
       daily.on('joined-meeting', () => {
+        console.log('Joined meeting successfully');
         setIsInCall(true);
         setIsConfigured(true);
         updateParticipants();
@@ -96,7 +116,13 @@ export default function VoiceChat() {
       });
 
       daily.on('error', (error) => {
+        console.error('Daily.co error:', error);
         setError('Call error: ' + error.errorMsg);
+      });
+
+      daily.on('camera-error', (error) => {
+        console.error('Camera/audio error:', error);
+        setError('Audio/video error: ' + error.errorMsg);
       });
 
       await daily.join({ url: roomUrl });
@@ -114,6 +140,7 @@ export default function VoiceChat() {
         audio: p.audio,
         isLocal: p.local
       }));
+      console.log('Participants updated:', participantList);
       setParticipants(participantList);
     }
   };
@@ -131,8 +158,10 @@ export default function VoiceChat() {
 
   const toggleMute = () => {
     if (callFrame) {
-      callFrame.setLocalAudio(!isMuted);
-      setIsMuted(!isMuted);
+      const newMutedState = !isMuted;
+      callFrame.setLocalAudio(!newMutedState);
+      setIsMuted(newMutedState);
+      console.log('Audio toggled:', newMutedState ? 'muted' : 'unmuted');
     }
   };
 
