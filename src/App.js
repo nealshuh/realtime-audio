@@ -95,14 +95,18 @@ export default function VoiceChat() {
 
       daily.on('participant-joined', (event) => {
         console.log('Participant joined:', event.participant);
+        updateParticipants();
         setTimeout(updateParticipants, 100);
+        setTimeout(updateParticipants, 500);
       });
       daily.on('participant-updated', (event) => {
         console.log('Participant updated:', event.participant);
+        updateParticipants();
         setTimeout(updateParticipants, 100);
       });
       daily.on('participant-left', (event) => {
         console.log('Participant left:', event.participant);
+        updateParticipants();
         setTimeout(updateParticipants, 100);
       });
 
@@ -110,7 +114,9 @@ export default function VoiceChat() {
         console.log('Joined meeting successfully');
         setIsInCall(true);
         setIsConfigured(true);
+        updateParticipants();
         setTimeout(updateParticipants, 200);
+        setTimeout(updateParticipants, 1000);
       });
 
       daily.on('left-meeting', () => {
@@ -150,14 +156,18 @@ export default function VoiceChat() {
   const updateParticipants = () => {
     if (callFrame) {
       const parts = callFrame.participants();
+      console.log('Raw participants from Daily:', parts);
       const participantList = Object.values(parts).map(p => ({
         id: p.session_id,
         name: p.user_name || 'Anonymous',
         audio: p.audio,
-        isLocal: p.local
+        isLocal: p.local,
+        audioTrack: p.audioTrack ? 'present' : 'missing'
       }));
       console.log('Participants updated:', participantList);
       setParticipants(participantList);
+    } else {
+      console.log('callFrame not available for updateParticipants');
     }
   };
 
@@ -178,6 +188,14 @@ export default function VoiceChat() {
       callFrame.setLocalAudio(!newMutedState);
       setIsMuted(newMutedState);
       console.log('Audio toggled:', newMutedState ? 'muted' : 'unmuted');
+    }
+  };
+
+  const testAudio = () => {
+    if (callFrame) {
+      console.log('Current participants for audio test:', callFrame.participants());
+      console.log('Local audio state:', callFrame.localAudio());
+      console.log('Microphone state:', callFrame.getInputSettings());
     }
   };
 
@@ -252,6 +270,13 @@ export default function VoiceChat() {
                   style={{...styles.button, ...(isMuted ? styles.buttonDanger : styles.buttonSecondary)}}
                 >
                   {isMuted ? '🔇 Unmute' : '🎤 Mute'}
+                </button>
+
+                <button
+                  onClick={testAudio}
+                  style={{...styles.button, ...styles.buttonSecondary}}
+                >
+                  🔊 Test Audio
                 </button>
 
                 <button
